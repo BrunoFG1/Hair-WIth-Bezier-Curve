@@ -1,6 +1,7 @@
 #include <GL/glew.h>
 #include <GL/freeglut.h>
 #include <cstdio>
+#include <cmath>
 
 // --- Shaders ---
 const char* vertexShaderSource = R"(
@@ -21,37 +22,98 @@ void main() {
 }
 )";
 
-// --- Globals ---
 GLuint shaderProgram, VAO;
 
-// Function of whta we want to draw
-float bezierCurve[] = {
+//Funções para bezier
+int fatorial(int n){ 
+    int fact = 1; 
+    for(int i = n; i > 0; i-- ) { 
+        fact = i * fact; 
+    } 
+    return fact;
+} 
     
+float binomial(int n, int k) { 
+    return (float)fatorial(n) / (fatorial(k) * fatorial(n-k)); 
+}
 
+struct Vec2 { float x, y; };
+
+Vec2 controlPoints[3] = {
+    {100.0f, 100.0f},
+    {400.0f, 600.0f},
+    {700.0f, 100.0f}
 };
 
+int numPoints = 2; 
 
-// --- Inicialização ---
+Vec2 bezier_point(float t, Vec2 P[], int n) {
+    Vec2 result = {0.0f, 0.0f};
+    for (int i = 0; i <= n; i++) {
+        result.x += binomial(n, i) * pow((1 - t), (n - i)) * pow(t, i) * P[i].x;
+        result.y += binomial(n, i) * pow((1 - t), (n - i)) * pow(t, i) * P[i].y;
+    }
+
+    // Normalização para coordenadas de clip space (-1 a 1)
+    result.x = result.x / 800.0f * 2.0f - 1.0f;
+    result.y = result.y / 600.0f * 2.0f - 1.0f;
+    return result;
+}
+
+Vec2 array[100];
+
+
 void Init() {
+    // Calcula pontos da curva
+    for (int i = 0; i < 100; i++) {
+        float t = i / float(100 - 1);
+        array[i] = bezier_point(t, controlPoints, numPoints);
+    }
 
-    // --- Criação de Shaders ---
+    //Criação e compilação de shaders 
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &vertexShaderSource, nullptr);
     glCompileShader(vertexShader);
 
+    GLint success;
+    GLchar infoLog[512];
+    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+        printf("Erro ao compilar Vertex Shader:\n%s\n", infoLog);
+    } else {
+        printf("Vertex Shader compilado com sucesso.\n");
+    }
+
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader, 1, &fragmentShaderSource, nullptr);
     glCompileShader(fragmentShader);
+
+    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
+        printf("Erro ao compilar Fragment Shader:\n%s\n", infoLog);
+    } else {
+        printf("Fragment Shader compilado com sucesso.\n");
+    }
 
     shaderProgram = glCreateProgram();
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
     glLinkProgram(shaderProgram);
 
+    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
+    if (!success) {
+        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
+        printf("Erro ao linkar o Shader Program:\n%s\n", infoLog);
+    } else {
+        printf("Shader Program linkado com sucesso.\n");
+    }
+
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
-    // --- VAO e VBO ---
+    //VAO e VBO
     GLuint VBO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
@@ -59,9 +121,9 @@ void Init() {
     glBindVertexArray(VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(squareVertices), squareVertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(array), array, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vec2), (void*)0);
     glEnableVertexAttribArray(0);
 
     glBindVertexArray(0);
@@ -70,24 +132,26 @@ void Init() {
     printf("Inicializacao completa!\n");
 }
 
-// --- Render ---
 void Render() {
     glClear(GL_COLOR_BUFFER_BIT);
 
     glUseProgram(shaderProgram);
     glBindVertexArray(VAO);
-    glDrawArrays(GL_LINE_STRIP, 0, 4);
+    glDrawArrays(GL_LINE_STRIP, 0, 100);
     glBindVertexArray(0);
 
     glutSwapBuffers();
 }
 
-// --- Main ---
+
 int main(int argc, char** argv) {
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
     glutInitWindowSize(800, 600);
-    glutCreateWindow("Quadrado com Shaders");
+
+    glutInitContextVersion(3, 3);
+    glutInitContextProfile(GLUT_CORE_PROFILE);
+    glutCreateWindow("Curva Bezier com Shaders");
 
     glewExperimental = GL_TRUE;
     if (glewInit() != GLEW_OK) {
