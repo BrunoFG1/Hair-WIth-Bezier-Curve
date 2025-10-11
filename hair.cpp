@@ -39,10 +39,11 @@ float binomial(int n, int k) {
 
 struct Vec2 { float x, y; };
 
-Vec2 controlPoints[3] = {
-    {100.0f, 100.0f},
-    {400.0f, 600.0f},
-    {700.0f, 100.0f}
+Vec2 controlPoints[4] = {
+    {400.0f, 100.0f},  
+    {420.0f, 300.0f},  
+    {380.0f, 500.0f}, 
+    {410.0f, 580.0f}   
 };
 
 int numPoints = 2; 
