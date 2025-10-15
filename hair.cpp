@@ -70,9 +70,29 @@ Vec2 point_with_oscilation(Vec2 result, float time, float factor){
     float amplitude_x = 0.1f * factor; // oscilação horizontal
     float amplitude_y = 0.05f * factor; // oscilação vertical
     result.x += amplitude_x * sin(frequency * time);
-    result.y += amplitude_y * sin(frequency * time);
+    result.y += amplitude_y * cos(frequency * time);
 
     return result;
+}
+
+
+Vec2 apply_wind(Vec2 pt, float t, float time) {
+    // Direção do vento
+    float windX = -0.05f; // vai para trás
+    float windY = 0.1f;   // sem subida/descida
+
+    // Intensidade proporcional à ponta
+    float factor = pow(t, 2.5f); // base fixa, ponta mais afetada
+
+    // Movimento oscilante + vento constante
+    float frequency = 2.0f;
+    float amplitude_x = 0.05f * factor;
+    float amplitude_y = 0.02f * factor;
+
+    pt.x += amplitude_x * sin(frequency * time) + windX * factor;
+    pt.y += amplitude_y * cos(frequency * time) + windY * factor;
+
+    return pt;
 }
 
 
@@ -166,7 +186,8 @@ void Render() {
             pt.x = pt.x * scale + offsetX;
             pt.y = pt.y * scale;
 
-            array[i] = point_with_oscilation(pt, time + phase, factor);
+            //array[i] = point_with_oscilation(pt, time + phase, factor);
+            array[i] = apply_wind(pt, t, time);
         }
         // Atualiza buffer e desenha este fio
         glBindVertexArray(VAO);
