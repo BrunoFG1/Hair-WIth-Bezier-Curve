@@ -22,7 +22,7 @@ void main() {
 }
 )";
 
-GLuint shaderProgram, VAO;
+GLuint shaderProgram, VAO, VBO;
 
 //Funções para bezier
 int fatorial(int n){ 
@@ -46,7 +46,7 @@ Vec2 controlPoints[4] = {
     {410.0f, 580.0f}   
 };
 
-int numPoints = 2; 
+int numPoints = 3; 
 
 Vec2 bezier_point(float t, Vec2 P[], int n) {
     Vec2 result = {0.0f, 0.0f};
@@ -63,13 +63,23 @@ Vec2 bezier_point(float t, Vec2 P[], int n) {
 
 Vec2 array[100];
 
+Vec2 point_with_oscilation(Vec2 result, float time, float factor){
+    float frequency = 2.0f; // frequencia de movimento
+    float amplitude_x = 0.1f * factor; // oscilação horizontal
+    float amplitude_y = 0.05f * factor; // oscilação vertical
+    result.x += amplitude_x * sin(frequency * time);
+    result.y += amplitude_y * cos(frequency * time);
+
+    return result;
+}
+
 
 void Init() {
     // Calcula pontos da curva
-    for (int i = 0; i < 100; i++) {
+    /*for (int i = 0; i < 100; i++) {
         float t = i / float(100 - 1);
         array[i] = bezier_point(t, controlPoints, numPoints);
-    }
+    }*/
 
     //Criação e compilação de shaders 
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -115,7 +125,6 @@ void Init() {
     glDeleteShader(fragmentShader);
 
     //VAO e VBO
-    GLuint VBO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
 
@@ -136,12 +145,30 @@ void Init() {
 void Render() {
     glClear(GL_COLOR_BUFFER_BIT);
 
+    // Tempo atual em segundos
+    float time = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
+
+    // Calcula os pontos da curva com oscilação
+    for (int i = 0; i < 100; i++) {
+        float t = i / float(100 - 1);
+        Vec2 pt = bezier_point(t, controlPoints, numPoints);
+        float factor = pow(t, 2.0f); 
+        array[i] = point_with_oscilation(pt, time, factor);
+    }
+
+    // Atualiza o VBO com os novos pontos
+    //glBindBuffer(GL_ARRAY_BUFFER, VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(array), array);
+
     glUseProgram(shaderProgram);
     glBindVertexArray(VAO);
     glDrawArrays(GL_LINE_STRIP, 0, 100);
     glBindVertexArray(0);
 
     glutSwapBuffers();
+
+    glutPostRedisplay();
 }
 
 
