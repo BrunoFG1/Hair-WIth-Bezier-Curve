@@ -22,6 +22,8 @@ void main() {
 }
 )";
 
+const int NUM_FIOS = 20;
+
 GLuint shaderProgram, VAO, VBO;
 
 //Funções para bezier
@@ -57,29 +59,24 @@ Vec2 bezier_point(float t, Vec2 P[], int n) {
 
     // Normalização para coordenadas de clip space (-1 a 1)
     result.x = result.x / 800.0f * 2.0f - 1.0f;
-    result.y = result.y / 600.0f * 2.0f - 1.0f;
+    result.y = -(result.y / 600.0f * 2.0f - 1.0f);
     return result;
 }
 
 Vec2 array[100];
 
 Vec2 point_with_oscilation(Vec2 result, float time, float factor){
-    float frequency = 2.0f; // frequencia de movimento
+    float frequency = 1.0f; // frequencia de movimento
     float amplitude_x = 0.1f * factor; // oscilação horizontal
     float amplitude_y = 0.05f * factor; // oscilação vertical
     result.x += amplitude_x * sin(frequency * time);
-    result.y += amplitude_y * cos(frequency * time);
+    result.y += amplitude_y * sin(frequency * time);
 
     return result;
 }
 
 
 void Init() {
-    // Calcula pontos da curva
-    /*for (int i = 0; i < 100; i++) {
-        float t = i / float(100 - 1);
-        array[i] = bezier_point(t, controlPoints, numPoints);
-    }*/
 
     //Criação e compilação de shaders 
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -147,23 +144,38 @@ void Render() {
 
     // Tempo atual em segundos
     float time = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
+    glUseProgram(shaderProgram);
 
-    // Calcula os pontos da curva com oscilação
-    for (int i = 0; i < 100; i++) {
-        float t = i / float(100 - 1);
-        Vec2 pt = bezier_point(t, controlPoints, numPoints);
-        float factor = pow(t, 2.0f); 
-        array[i] = point_with_oscilation(pt, time, factor);
+    for (int j = 0; j < NUM_FIOS; j++){
+
+        // Calcula o "plano" de profundidade do fio
+        float depth = float(j) / NUM_FIOS; // 0.0 (frente) → 1.0 (fundo)
+
+        // Escala e deslocamento
+        float scale = 1.0f - depth * 0.2f; // fios mais "atrás" ficam ligeiramente menores
+        float offsetX = (depth - 0.5f) * 0.3f; // desloca em X (simula camada)
+        float phase = depth * 3.14f; // muda ligeiramente a fase da oscilação
+
+        // Calcula os pontos da curva com oscilação
+        for (int i = 0; i < 100; i++) {
+            float t = i / float(100 - 1);
+            Vec2 pt = bezier_point(t, controlPoints, numPoints);
+            float factor = pow(t, 2.0f); 
+
+            // aplica escala e deslocamento 2.5D
+            pt.x = pt.x * scale + offsetX;
+            pt.y = pt.y * scale;
+
+            array[i] = point_with_oscilation(pt, time + phase, factor);
+        }
+        // Atualiza buffer e desenha este fio
+        glBindVertexArray(VAO);
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(array), array);
+        glDrawArrays(GL_LINE_STRIP, 0, 100);
+
     }
 
-    // Atualiza o VBO com os novos pontos
-    //glBindBuffer(GL_ARRAY_BUFFER, VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(array), array);
-
-    glUseProgram(shaderProgram);
-    glBindVertexArray(VAO);
-    glDrawArrays(GL_LINE_STRIP, 0, 100);
     glBindVertexArray(0);
 
     glutSwapBuffers();
