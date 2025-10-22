@@ -158,7 +158,7 @@ void Render() {
         float offsetX = (depth - 0.5f) * 0.3f;
         float phase = depth * 3.14f;
 
-        // 💈 Cor realista do cabelo
+        //Cor do cabelo
         float baseR = 0.55f, baseG = 0.35f, baseB = 0.15f; // castanho claro
         float variation = 0.08f * ((j % 5) - 2); // pequenas variações
         float r = baseR + variation;
@@ -192,7 +192,7 @@ void Render() {
     glutPostRedisplay();
 }
 
-// --- Main ---
+
 int main(int argc, char** argv) {
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
