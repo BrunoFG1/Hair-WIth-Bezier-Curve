@@ -2,7 +2,7 @@
 TARGET = pro
 
 # Arquivo fonte
-SRC = hair.cpp
+SRC = circle.cpp
 
 # Compilador
 CC = g++
